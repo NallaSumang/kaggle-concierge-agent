@@ -1,26 +1,34 @@
-# 🗂️ Smart Local File Organizer (Concierge Agent)
+<div align="center">
+  <h1>🗂️ Kaggle Concierge Agent</h1>
+  <p>A focused, local automation script for file-system orchestration and Kaggle workflows.</p>
+</div>
 
-An intelligent, completely local file organization assistant built for the **Kaggle 5-Day AI Agents Capstone Project**. 
+---
 
-This Concierge Agent solves the universal problem of digital clutter by securely scanning, categorizing, and sorting local files based on their extensions. It is designed with a strict human-in-the-loop workflow and features graceful offline degradation to ensure reliability even when API rate limits are hit.
+## 📖 Overview
 
-## 🚀 Key Course Concepts Applied
+**Kaggle Concierge Agent** is a streamlined Python automation utility designed to orchestrate your local file-system and interface seamlessly with Kaggle. Rather than over-engineering a bloated microservice architecture, this repository keeps its logic contained within a single, highly effective script (`agent.py`).
 
-This project explicitly demonstrates four core concepts taught in the 5-Day Intensive Vibe Coding Course:
+## 🏗️ Script Architecture
 
-1. **Agent Development Kit (ADK 2.0):** The core logic is orchestrated using Google's `LlmAgent` and `Runner` from the ADK 2.0 library. It includes a custom exception handler that gracefully degrades to local deterministic heuristics if the Gemini API encounters a `429 Quota Exceeded` error.
-2. **MCP Server Integration:** The agent uses the `@modelcontextprotocol/server-filesystem` MCP toolset. This sandboxes the agent, giving it strict, scoped access to list directories and move files without requiring custom Python OS integration.
-3. **Security Features (Human-In-The-Loop):** The agent operates under a strict "Scan & Plan" paradigm. It is physically prohibited from moving, deleting, or altering any file until it presents a summary table to the user and receives explicit `Y/N` terminal approval.
-4. **Antigravity IDE:** The initial boilerplate and structural logic were generated using prompt-driven "vibe coding" within Google's Antigravity IDE environment.
+The entire workflow is driven by `agent.py`, which acts as the singular entry point for:
+- **File-System Orchestration:** Organizes, moves, and manages files within your local `workspace/` directory autonomously.
+- **Human-in-the-Loop Interruption:** Contains robust exception handling and fallback logic that safely pauses execution when manual user confirmation or intervention is required.
+- **Kaggle API Interfacing:** Connects to datasets and competitions natively.
 
-## 🛠️ Architecture Pipeline
+*Design Philosophy:* This is not a distributed microservice deployment; it is a specialized local developer tool. Keeping the entire orchestration logic within a single Python script allows for rapid iteration, simple execution, and immediate debuggability without complex containerization.
 
-The agent uses a purely local, secure pipeline:
-`User CLI` ➔ `ADK 2.0 Runner` ➔ `Gemini 2.5 Flash` ➔ `File System MCP Server` ➔ `Local Workspace`
+## 🚀 Getting Started
 
-## 💻 Setup & Installation
-
-1. **Clone the repository:**
+1. **Environment Setup:** Ensure you have your `KAGGLE_USERNAME` and `KAGGLE_KEY` set in your environment variables or local `~/.kaggle/kaggle.json`.
+2. **Install Dependencies:**
    ```bash
-   git clone [https://github.com/NallaSumang/kaggle-concierge-agent.git](https://github.com/NallaSumang/kaggle-concierge-agent.git)
-   cd kaggle-concierge-agent
+   pip install -r requirements.txt
+   ```
+3. **Run the Orchestrator:**
+   ```bash
+   python agent.py
+   ```
+
+## 📜 License
+Distributed under the MIT License.
