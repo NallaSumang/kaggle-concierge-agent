@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
   <h1>🤖 Kaggle Concierge Agent</h1>
   <p>An autonomous file-system organizer powered by Google ADK 2.0 and Gemini.</p>
 </div>
@@ -18,12 +18,12 @@
 │  │  LlmAgent  ("file_organizer")                       │ │
 │  │   model : gemini-2.5-flash                          │ │
 │  │   tools :                                           │ │
-│  │     └─ MCPToolset ──stdio──▶ @modelcontextprotocol │ │
+│  │     └─ MCPToolset ──stdio──> @modelcontextprotocol │ │
 │  │                              /server-filesystem     │ │
 │  └─────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Workflow Graph                                     │ │
-│  │   START ──▶ file_organizer ──▶ END                 │ │
+│  │   START ──> file_organizer ──> END                 │ │
 │  └─────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────┘
 ```
