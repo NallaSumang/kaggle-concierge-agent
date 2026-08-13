@@ -18,12 +18,12 @@
 │  │  LlmAgent  ("file_organizer")                       │ │
 │  │   model : gemini-2.5-flash                          │ │
 │  │   tools :                                           │ │
-│  │     └─ MCPToolset ──stdio──▶ @modelcontextprotocol  │ │
+│  │     └─ MCPToolset ──stdio──▶ @modelcontextprotocol │ │
 │  │                              /server-filesystem     │ │
 │  └─────────────────────────────────────────────────────┘ │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Workflow Graph                                     │ │
-│  │   START ──▶ file_organizer ──▶ END                  │ │
+│  │   START ──▶ file_organizer ──▶ END                 │ │
 │  └─────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────┘
 ```
