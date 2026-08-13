@@ -19,12 +19,12 @@ Architecture
 │  │  LlmAgent  ("file_organizer")                       │  │
 │  │   model : gemini-2.5-flash                          │  │
 │  │   tools :                                           │  │
-│  │     └─ MCPToolset ──stdio──▶ @modelcontextprotocol  │  │
+│  │     └─ MCPToolset ──stdio──> @modelcontextprotocol  │  │
 │  │                              /server-filesystem     │  │
 │  └─────────────────────────────────────────────────────┘  │
 │  ┌─────────────────────────────────────────────────────┐  │
 │  │  Workflow Graph                                      │  │
-│  │   START ──▶ file_organizer ──▶ END                   │  │
+│  │   START ──> file_organizer ──> END                   │  │
 │  └─────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────┘
 
@@ -309,29 +309,87 @@ async def run_interactive():
                     import os, shutil, time
                     await asyncio.sleep(1)  # Simulate offline processing
                     
+                    # Exact categories from the system prompt
+                    CATEGORIES = {
+                        "Code": {".py", ".js", ".ts", ".java", ".c", ".cpp", ".h", ".go", ".rs", ".rb", ".php", ".sh", ".bat", ".ps1", ".sql", ".html", ".css", ".jsx", ".tsx", ".ipynb"},
+                        "Documents": {".pdf", ".doc", ".docx", ".txt", ".md", ".rst", ".odt", ".rtf", ".tex", ".ppt", ".pptx", ".xls", ".xlsx", ".pages", ".key", ".numbers"},
+                        "Data": {".csv", ".json", ".xml", ".yaml", ".yml", ".toml", ".parquet", ".avro", ".tsv", ".sqlite", ".db", ".ndjson", ".geojson"},
+                        "Media": {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".mp4", ".mp3", ".wav", ".avi", ".mov", ".mkv", ".flac", ".ogg", ".bmp", ".ico", ".tiff"},
+                        "Archives": {".zip", ".tar", ".gz", ".bz2", ".7z", ".rar", ".xz", ".tgz"},
+                        "Config": {".env", ".ini", ".cfg", ".conf", ".properties", ".dockerignore", ".gitignore", ".editorconfig"}
+                    }
+                    EXACT_CONFIG = {"Dockerfile", "Makefile", "docker-compose.yml"}
+
+                    def get_category(file_path):
+                        if file_path.name in EXACT_CONFIG:
+                            return "Config"
+                        ext = file_path.suffix.lower()
+                        for cat, exts in CATEGORIES.items():
+                            if ext in exts: return cat
+                        return "Other"
+
+                    root_dir = Path(ACCESSIBLE_FOLDER)
+                    category_names = set(CATEGORIES.keys()) | {"Other"}
+                    loose_files = []
+                    
+                    # Recursive scan skipping already organized files
+                    if root_dir.exists():
+                        for p in root_dir.rglob("*"):
+                            if not p.is_file(): continue
+                            if p.name.startswith("."): continue # Safety: skip hidden
+                            rel_parts = p.relative_to(root_dir).parts
+                            if len(rel_parts) > 1 and rel_parts[0] in category_names:
+                                continue
+                            if rel_parts[0] not in category_names:
+                                loose_files.append(p)
+
                     user_lower = user_input.lower().strip()
-                    if user_lower in ["y", "yes"]:
+                    if user_lower in ["y", "yes", "approve"]:
+                        if not loose_files:
+                            print("\n✅ No loose files found. Everything is already organized.")
+                            break
                         moved_count = 0
-                        for f in os.listdir(ACCESSIBLE_FOLDER):
-                            src = os.path.join(ACCESSIBLE_FOLDER, f)
-                            if os.path.isfile(src):
-                                ext = f.split('.')[-1].lower() if '.' in f else 'other'
-                                dest_folder = os.path.join(ACCESSIBLE_FOLDER, f"{ext.upper()}_Files")
-                                os.makedirs(dest_folder, exist_ok=True)
-                                shutil.move(src, os.path.join(dest_folder, f))
+                        for f in loose_files:
+                            cat = get_category(f)
+                            dest_dir = root_dir / cat
+                            dest_dir.mkdir(exist_ok=True)
+                            dest_path = dest_dir / f.name
+                            if dest_path.exists() and dest_path != f:
+                                dest_path = dest_dir / f"{f.stem}(1){f.suffix}"
+                            try:
+                                shutil.move(str(f), str(dest_path))
                                 moved_count += 1
-                        print(f"✅ Successfully organized {moved_count} files securely offline!")
+                            except Exception as e:
+                                print(f"❌ Error moving {f.name}: {e}")
+                        print(f"\n✅ Successfully organized {moved_count} files securely offline!")
                         break
-                    elif user_lower in ["n", "no"]:
-                        print("Operation cancelled.")
+                        
+                    elif user_lower in ["n", "no", "cancel"]:
+                        print("\n🚫 Operation cancelled. No files were moved.")
                         break
-                    elif user_lower in ["organize", "organize my files", "organize my data", "sort"]:
-                        print("\nI have scanned your local workspace using fallback offline heuristics.")
-                        print("I will organize all loose files into categorized folders based on their extensions.")
-                        print("Do you approve this plan? (Y/N)")
+                        
+                    elif any(cmd in user_lower for cmd in ["organize", "sort"]):
+                        if not loose_files:
+                            print("\n✅ Your workspace is already perfectly organized!")
+                            break
+                        print("\nI have scanned your workspace using fallback offline heuristics.")
+                        print("  #  |  File Name                     |  Proposed Destination")
+                        print(" -------------------------------------------------------------")
+                        cat_counts = {c: 0 for c in category_names}
+                        for i, f in enumerate(loose_files, 1):
+                            cat = get_category(f)
+                            cat_counts[cat] += 1
+                            name_disp = f.name[:28].ljust(28)
+                            print(f" {i:2d}. |  {name_disp} |  📂 {cat}")
+                            
+                        print("\n 📊 Summary:")
+                        for c, count in cat_counts.items():
+                            if count > 0: print(f"    - {c}: {count} files")
+                        print("\nDo you approve this sorting plan? (Y/N)")
                         break
+                        
                     else:
-                        print("Invalid input. Y/N required.")
+                        print("Invalid input. Please respond with Y or N to the plan, or type 'organize'.")
                         break
                 elif "NOT_FOUND" in error_msg or "404" in error_msg:
                     print(f"\n\n⚠️  [MODEL NOT FOUND] The model '{MODEL_ID}' is not available on this GCP project.")
