@@ -171,6 +171,10 @@ STEP 3 — EXECUTE (only after explicit approval)
   5. If you encounter an error on one file, log it and continue with
      the remaining files.
   6. Be concise — avoid dumping raw file contents unless asked.
+  7. UNDO LOGGING: Whenever you move files, you MUST write a transaction log
+     to a file named `.move_history.json` in the workspace root. The file
+     must contain a JSON array of objects: [{"source": "old/path", "dest": "new/path"}].
+     Overwrite the file with your new moves.
 """
 
 
@@ -261,6 +265,7 @@ async def run_interactive():
     print(f"  Model    : {MODEL_ID}")
     print(f"  Workspace: {ACCESSIBLE_FOLDER}")
     print(f"  Tip: type 'organize' to start sorting!")
+    print(f"  Tip: type 'undo' to instantly revert a mistake.")
     print(f"  Type 'quit' or 'exit' to stop.")
     print("=" * 60)
 
@@ -274,6 +279,27 @@ async def run_interactive():
         if not user_input or user_input.lower() in {"quit", "exit", "q"}:
             print("Goodbye!")
             break
+
+        if user_input.lower() in {"undo", "revert"}:
+            import json, shutil
+            hist_file = Path(ACCESSIBLE_FOLDER) / ".move_history.json"
+            if hist_file.exists():
+                try:
+                    moves = json.loads(hist_file.read_text())
+                    count = 0
+                    for m in moves:
+                        src, dst = Path(m["source"]), Path(m["dest"])
+                        if dst.exists():
+                            src.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.move(str(dst), str(src))
+                            count += 1
+                    hist_file.unlink()
+                    print(f"\n✅ Successfully reverted {count} file moves!")
+                except Exception as e:
+                    print(f"\n❌ Failed to undo: {e}")
+            else:
+                print("\n⚠️ No move history found to undo.")
+            continue
 
         # Build the user message content.
         content = types.Content(
@@ -349,6 +375,7 @@ async def run_interactive():
                             print("\n✅ No loose files found. Everything is already organized.")
                             break
                         moved_count = 0
+                        move_log = []
                         for f in loose_files:
                             cat = get_category(f)
                             dest_dir = root_dir / cat
@@ -358,10 +385,14 @@ async def run_interactive():
                                 dest_path = dest_dir / f"{f.stem}(1){f.suffix}"
                             try:
                                 shutil.move(str(f), str(dest_path))
+                                move_log.append({"source": str(f), "dest": str(dest_path)})
                                 moved_count += 1
                             except Exception as e:
                                 print(f"❌ Error moving {f.name}: {e}")
+                        import json
+                        (root_dir / ".move_history.json").write_text(json.dumps(move_log))
                         print(f"\n✅ Successfully organized {moved_count} files securely offline!")
+                        print("Tip: Type 'undo' to revert these changes.")
                         break
                         
                     elif user_lower in ["n", "no", "cancel"]:
